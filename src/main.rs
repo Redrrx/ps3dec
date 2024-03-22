@@ -56,14 +56,16 @@ fn main() -> io::Result<()> {
     env::set_var("RUST_LOG", "info");
     setup_logging().expect("yikes");
     let args: Vec<String> = env::args().collect();
-
+    println!("{:?}", &args);
     if args.len() == 2 {
         let maybe_dragdrop_path = env::args().nth(1);
         if let Some(dragdrop) = maybe_dragdrop_path {
             let path = Path::new(&dragdrop);
+            info!("{:?}", &path);
             if dragdrop.ends_with(".iso") {
                 let filename_str = path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
                 debug!("Received drag-and-drop file name: {}", filename_str);
+                debug!("{:?}", &dragdrop);
                 if let Ok(Some(key)) = detect_key(filename_str.to_string()) {
                     decrypt(dragdrop, &key, 64)?;
                 } else {
@@ -73,11 +75,9 @@ fn main() -> io::Result<()> {
         }
     } else {
         let args = Ps3decargs::parse();
-        info!("{:?}", &args);
         if args.auto {
             let split = &args.iso.split(".iso").next().unwrap_or("");
             if let Ok(Some(key)) = detect_key(split.to_string()) {
-                println!("successfully validated key {}", &key);
                 decrypt(args.iso, &key, args.tc)?;
             }
         } else {
@@ -93,11 +93,11 @@ fn main() -> io::Result<()> {
         }
     }
 
-    println!("Job done, press any button to exit...");
+    info!("Job done, press any button to exit...");
     let mut input_string = String::new();
     io::stdin()
         .read_line(&mut input_string)
         .expect("Failed to read line");
-    println!("Ciao!");
+    info!("Ciao!");
     Ok(())
 }
