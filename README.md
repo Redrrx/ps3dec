@@ -1,6 +1,7 @@
 # PS3 Decryptor
 
-PS3Dec is a remake of the original PS3 decryptor which decrypts PS3s Redump ISOs.
+PS3Dec is a remake of the original PS3 decryptor which decrypts PS3s redump ISOs.
+
 
 ## How does it work ?
 
@@ -18,14 +19,28 @@ What is simply done is using a decryption key and decrypting what needs to be de
 written to disk without
 keeping the data in memory.
 
+
+## Demo
+
+Decrypting MX vs. ATV Untamed (USA) in 2 seconds on a fast enough rig!
+
+
+https://github.com/Redrrx/PS3DECREMAKE_CLI/assets/38400007/dc448850-b834-4bf6-a7a0-70bed731d092
+
+
+
 ## Usage
 
---iso is for your iso file --dk is for your decryption key and --tc is for thread count.
+| Option | Description                                    | Note                       |
+|--------|------------------------------------------------|----------------------------|
+| `--iso`| For the ISO file                               |                            |
+| `--dk` | For decryption key, a base-16 hex key          |                            |
+| `--tc` | Thread count, specifies the number of threads  | Be careful with this one   |
+| `--auto`| Enables automatic key detection and decryption| Will only work if there is the key in the **keys** folder|
+
 
 ```
-
 ps3dec.exe --iso game.iso --dk yourdecryptionkey --tc 64
-
 ```
 
 If you don't want to keep changing your decryption key every time you can use --auto flag , which will look
@@ -37,9 +52,7 @@ key are compatible.
 ps3dec.exe --iso game.iso --auto --tc 64
 ```
 
-## Demo
 
-[![Alt text for the thumbnail](URL_of_Thumbnail)](URL_of_Video "Video Title")
 
 ## Acknowledgements
 
@@ -47,6 +60,5 @@ ps3dec.exe --iso game.iso --auto --tc 64
 - [Psdevwiki Bluray information ](https://www.psdevwiki.com/ps3/Bluray_disc)
 - [Understanding PS3 disk encryption](https://www.psx-place.com/threads/3k3y-iso-tools-understanding-ps3-disk-encryption.29903/)
 
-## License
 
 
