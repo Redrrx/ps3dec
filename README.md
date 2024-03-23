@@ -24,7 +24,7 @@ keeping the data in memory.
 
 ## Demo
 
-Decrypting MX vs. ATV Untamed (USA) in 2 seconds on a fast enough rig!
+Decrypting MX vs. ATV Untamed (USA) in 2 seconds on a fast enough rig! sometimes increasing the thread count too high might add a slight overhead for the dec process to start.
 
 
 https://github.com/Redrrx/PS3DECREMAKE_CLI/assets/38400007/dc448850-b834-4bf6-a7a0-70bed731d092
