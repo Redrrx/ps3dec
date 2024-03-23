@@ -7,7 +7,7 @@ use aes::Aes128Dec;
 use cbc::Decryptor;
 use hex::decode;
 use indicatif::{ProgressBar, ProgressStyle};
-use log::{error, info, trace, warn, LevelFilter};
+use log::info;
 use rayon::ThreadPoolBuilder;
 use std::fs::File;
 use std::io;
@@ -118,11 +118,7 @@ pub fn decrypt(file_path: String, decryption_key: &str, thread_count: usize) -> 
 
     let elapsed = now.elapsed().expect("Failed to measure time");
     info!("Decryption completed in {} seconds.", elapsed.as_secs());
-    info!(
-        "Data written to {}. Total sectors decrypted: {}",
-        output_file_path,
-        processed_sectors.load(Ordering::SeqCst)
-    );
+    info!("Data written to {}.", output_file_path);
 
     Ok(())
 }

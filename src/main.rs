@@ -9,13 +9,11 @@ use clap::Parser;
 use log::{debug, error, info, LevelFilter};
 use log4rs::{
     append::{console::ConsoleAppender, file::FileAppender},
-    config::{Appender, Config, Logger, Root},
+    config::{Appender, Config, Root},
     encode::pattern::PatternEncoder,
 };
 
 use ps3decremake::decrypt;
-use std::fs::File;
-use std::io::Write;
 use std::io::{self};
 use std::path::Path;
 use std::{env, fs};
@@ -56,16 +54,13 @@ fn main() -> io::Result<()> {
     env::set_var("RUST_LOG", "info");
     setup_logging().expect("yikes");
     let args: Vec<String> = env::args().collect();
-    println!("{:?}", &args);
     if args.len() == 2 {
         let maybe_dragdrop_path = env::args().nth(1);
         if let Some(dragdrop) = maybe_dragdrop_path {
             let path = Path::new(&dragdrop);
-            info!("{:?}", &path);
             if dragdrop.ends_with(".iso") {
                 let filename_str = path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
                 debug!("Received drag-and-drop file name: {}", filename_str);
-                debug!("{:?}", &dragdrop);
                 if let Ok(Some(key)) = detect_key(filename_str.to_string()) {
                     decrypt(dragdrop, &key, 64)?;
                 } else {

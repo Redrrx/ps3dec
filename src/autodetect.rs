@@ -1,4 +1,4 @@
-use log::{error, info, trace, warn, LevelFilter};
+use log::{info, warn};
 use std::fs;
 
 // Only usable if the keys folder exists
