@@ -2,6 +2,8 @@
 
 PS3Dec is a remake of the original PS3 decryptor which decrypts PS3s redump ISOs.
 
+the original one was written in C  around 11 years ago, the sole reason i rewrote this one is for learning Rust and making my own slightly faster version to add features later anytime i want.
+
 
 ## How does it work ?
 
