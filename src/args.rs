@@ -14,4 +14,7 @@ pub struct Ps3decargs {
 
     #[clap(short, long, help = "Autodetect the right key for the iso based on its name then decrypt", action = clap::ArgAction::SetTrue)]
     pub auto: bool,
+
+    #[clap(short,long,help = "Skip exit confirmation.",action = clap::ArgAction::SetTrue)]
+    pub skip: bool,
 }
