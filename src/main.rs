@@ -43,18 +43,20 @@ fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
         )?;
 
     log4rs::init_config(config)?;
-
-    info!("Logging is up.");
-
     Ok(())
 }
 
-// Either drag and drop which will auto detect key, OR launch through CLI.
+// Either drag and drop which will auto-detect key, OR launch through CLI.
 fn main() -> io::Result<()> {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() == 2 && args[1] == "--help" {
+        let _ = Ps3decargs::parse_from(&["", "--help"]);
+    }
+
     env::set_var("RUST_LOG", "info");
     setup_logging().expect("yikes");
-    let args: Vec<String> = env::args().collect();
-    if args.len() == 2 {
+    let ps3_args = if args.len() == 2 {
         let maybe_dragdrop_path = env::args().nth(1);
         if let Some(dragdrop) = maybe_dragdrop_path {
             let path = Path::new(&dragdrop);
@@ -68,8 +70,12 @@ fn main() -> io::Result<()> {
                 }
             }
         }
+        None
     } else {
-        let args = Ps3decargs::parse();
+        Some(Ps3decargs::parse())
+    };
+
+    if let Some(args) = ps3_args {
         if args.auto {
             let split = &args.iso.split(".iso").next().unwrap_or("");
             if let Ok(Some(key)) = detect_key(split.to_string()) {
@@ -86,13 +92,16 @@ fn main() -> io::Result<()> {
                 error!("Error: Decryption key is required unless '--auto' is specified.");
             }
         }
+
+        if !args.skip {
+            info!("Job done, press any button to exit...");
+            let mut input_string = String::new();
+            io::stdin()
+                .read_line(&mut input_string)
+                .expect("Failed to read line");
+            info!("Ciao!");
+        }
     }
 
-    info!("Job done, press any button to exit...");
-    let mut input_string = String::new();
-    io::stdin()
-        .read_line(&mut input_string)
-        .expect("Failed to read line");
-    info!("Ciao!");
     Ok(())
 }
