@@ -1,11 +1,8 @@
 name: ps3dec building
-
 on:
   workflow_dispatch:
-
 env:
   CARGO_TERM_COLOR: always
-
 jobs:
   build:
     name: Build on ${{ matrix.os }}
@@ -19,20 +16,23 @@ jobs:
             target: x86_64-unknown-linux-gnu
           - os: macos-latest
             target: x86_64-apple-darwin
-
     steps:
     - uses: actions/checkout@v2
-
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         target: ${{ matrix.target }}
         override: true
-
+    - name: Install Linux dependencies
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
     - name: Build
-      run: cargo build --verbose --release --target ${{ matrix.target }}
-
+      run: |
+        rustc -vV
+        cargo build --verbose --release --target ${{ matrix.target }}
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
