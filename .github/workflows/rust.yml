@@ -22,14 +22,13 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
+        target: ${{ matrix.target }}
         override: true
-    - name: Add target
-      run: rustup target add ${{ matrix.target }}
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y musl-tools
+        sudo apt-get install -y musl-tools musl-dev gcc-multilib
     - name: Set up Cargo config
       shell: bash
       run: |
@@ -38,7 +37,7 @@ jobs:
         [target.x86_64-pc-windows-gnu]
         rustflags = ["-C", "target-feature=+crt-static"]
         [target.x86_64-unknown-linux-musl]
-        rustflags = ["-C", "target-feature=-crt-static"]
+        rustflags = ["-C", "target-feature=-crt-static", "-C", "link-arg=-lgcc", "-C", "link-arg=-static-libgcc"]
         linker = "musl-gcc"
         [target.x86_64-apple-darwin]
         rustflags = ["-C", "target-feature=-crt-static"]
