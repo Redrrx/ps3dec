@@ -25,10 +25,11 @@ strip = "debuginfo"
 lto = "fat"
 codegen-units = 1
 
-[build]
-rustflags = ["-C", "target-feature=+crt-static"]
-
 [lib]
 name = "ps3decremake"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "ps3decremake_cli"
+path = "src/main.rs"
