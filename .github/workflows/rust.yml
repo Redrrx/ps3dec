@@ -29,20 +29,20 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y musl-tools build-essential gcc
-    - name: Set up musl-gcc linker
+    - name: Set up linker for musl
       if: matrix.os == 'ubuntu-latest'
       run: |
         echo "[target.x86_64-unknown-linux-musl]" >> ~/.cargo/config
         echo "linker = \"musl-gcc\"" >> ~/.cargo/config
+    - name: Set up linker for gnu
+      if: matrix.target == 'x86_64-unknown-linux-gnu'
+      run: |
+        echo "[target.x86_64-unknown-linux-gnu]" >> ~/.cargo/config
+        echo "linker = \"gcc\"" >> ~/.cargo/config
     - name: Build
       run: |
         rustc -vV
-        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-          export CC_x86_64_unknown_linux_musl=musl-gcc
-          cargo build --verbose --release --target x86_64-unknown-linux-musl
-        else
-          cargo build --verbose --release --target ${{ matrix.target }}
-        fi
+        cargo build --verbose --release --target ${{ matrix.target }}
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
