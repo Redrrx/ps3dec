@@ -29,7 +29,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y musl-tools build-essential gcc
+        sudo apt-get install -y musl-tools
     - name: Set up Cargo config
       shell: bash
       run: |
