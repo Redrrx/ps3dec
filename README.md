@@ -2,7 +2,9 @@
 
 PS3Dec is a remake of the original PS3 decryptor which decrypts PS3s redump ISOs.
 
-the original one was written in C  around 11 years ago, the sole reason i rewrote this one is for learning Rust and making my own slightly faster version to add features later anytime i want.
+the original one was written in C around 11 years ago, the sole reason i rewrote this one is for learning Rust and making my own slightly faster version to add features later anytime i want.
+
+also i love ps3.
 
 
 ## How does it work ?
@@ -24,7 +26,11 @@ keeping the data in memory.
 
 ## Demo
 
-Decrypting MX vs. ATV Untamed (USA) in 2 seconds on a fast enough rig! sometimes increasing the thread count too high might add a slight overhead for the dec process to start.
+Decrypting MX vs. ATV Untamed (USA) in less than 2 seconds on a fast enough rig! sometimes increasing the thread count too high might add a slight overhead for the dec process to start.
+
+
+
+Please bear in mind this demonstration is done on some very idealistic conditions with a very good CPU and a good SSD.
 
 
 https://github.com/Redrrx/PS3DECREMAKE_CLI/assets/38400007/dc448850-b834-4bf6-a7a0-70bed731d092
@@ -33,12 +39,14 @@ https://github.com/Redrrx/PS3DECREMAKE_CLI/assets/38400007/dc448850-b834-4bf6-a7
 
 ## Usage
 
-| Option | Description                                    | Note                       |
-|--------|------------------------------------------------|----------------------------|
-| `--iso`| For the ISO file                               |                            |
-| `--dk` | For decryption key, a base-16 hex key          |                            |
-| `--tc` | Thread count, specifies the number of threads  | Be careful with this one   |
-| `--auto`| Enables automatic key detection and decryption| Will only work if there is the key in the **keys** folder|
+| Option   | Description                                         | Note                                                      |
+|----------|-----------------------------------------------------|-----------------------------------------------------------|
+| `--iso`  | For the ISO file                                    |                                                           |
+| `--dk`   | For decryption key, a base-16 hex key               |                                                           |
+| `--tc`   | Thread count, specifies the number of threads       | Be careful with this one                                  |
+| `--auto` | Enables automatic key detection and decryption      | Will only work if there is the key in the **keys** folder |
+| `--skip` | Disables the press any key to exit after decryption |                                                           |    
+
 
 
 ```
@@ -54,6 +62,12 @@ key are compatible.
 ps3dec.exe --iso game.iso --auto --tc 64
 ```
 
+## Releases types
+
+If you visit the releases page you might find two types
+
+* Stable == ready to use, reliable enough.
+* Preview == trying out requests, and toying around before stable.
 
 
 ## Acknowledgements
