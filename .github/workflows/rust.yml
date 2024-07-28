@@ -1,8 +1,11 @@
 name: ps3dec building
-on:
+
+on: 
   workflow_dispatch:
+
 env:
   CARGO_TERM_COLOR: always
+
 jobs:
   build:
     name: Build on ${{ matrix.os }}
@@ -16,19 +19,28 @@ jobs:
             target: x86_64-unknown-linux-musl
           - os: macos-latest
             target: x86_64-apple-darwin
+
     steps:
     - uses: actions/checkout@v2
+
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         target: ${{ matrix.target }}
         override: true
+
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
         sudo apt-get install -y musl-tools musl-dev gcc-multilib
+
+    - name: Install macOS dependencies
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install coreutils
+
     - name: Set up Cargo config
       shell: bash
       run: |
@@ -36,18 +48,23 @@ jobs:
         cat << EOF > ~/.cargo/config
         [target.x86_64-pc-windows-gnu]
         rustflags = ["-C", "target-feature=+crt-static"]
+        
         [target.x86_64-unknown-linux-musl]
-        rustflags = ["-C", "target-feature=-crt-static", "-C", "link-arg=-lgcc", "-C", "link-arg=-static-libgcc"]
+        rustflags = ["-C", "target-feature=-crt-static"]
         linker = "musl-gcc"
+        
         [target.x86_64-apple-darwin]
         rustflags = ["-C", "target-feature=-crt-static"]
+        
         [target.aarch64-apple-darwin]
         rustflags = ["-C", "target-feature=-crt-static"]
         EOF
+
     - name: Build
       run: |
         rustc -vV
         cargo build --verbose --release --target ${{ matrix.target }}
+
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
