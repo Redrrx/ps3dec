@@ -13,7 +13,7 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-gnu
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-musl
           - os: macos-latest
             target: x86_64-apple-darwin
     steps:
@@ -28,11 +28,21 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential
+        sudo apt-get install -y musl-tools build-essential gcc
+    - name: Set up musl-gcc linker
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        echo "[target.x86_64-unknown-linux-musl]" >> ~/.cargo/config
+        echo "linker = \"musl-gcc\"" >> ~/.cargo/config
     - name: Build
       run: |
         rustc -vV
-        cargo build --verbose --release --target ${{ matrix.target }}
+        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+          export CC_x86_64_unknown_linux_musl=musl-gcc
+          cargo build --verbose --release --target x86_64-unknown-linux-musl
+        else
+          cargo build --verbose --release --target ${{ matrix.target }}
+        fi
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
