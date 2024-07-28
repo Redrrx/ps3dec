@@ -2,7 +2,7 @@
 rustflags = ["-C", "target-feature=+crt-static"]
 
 [target.x86_64-unknown-linux-musl]
-rustflags = ["-C", "target-feature=-crt-static", "-C", "link-arg=-lgcc", "-C", "link-arg=-static-libgcc"]
+rustflags = ["-C", "target-feature=-crt-static"]
 linker = "musl-gcc"
 
 [target.x86_64-apple-darwin]
