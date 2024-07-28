@@ -22,8 +22,9 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-        target: ${{ matrix.target }}
         override: true
+    - name: Add target
+      run: rustup target add ${{ matrix.target }}
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
       run: |
