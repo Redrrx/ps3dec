@@ -9,7 +9,7 @@ pub struct Ps3decargs {
     #[clap(short, long, help = "The decryption key in Hexadecimal format of base-16.")]
     pub dk: Option<String>,
 
-    #[clap(short, long, help = "Thread count, be careful this might vary from computer to computer.")]
+    #[clap(short, long, help = "Thread count, be careful this might vary from computer to computer.",default_value = "32")]
     pub tc: usize,
 
     #[clap(short, long, help = "Autodetect the right key for the iso based on its name then decrypt", action = clap::ArgAction::SetTrue)]
