@@ -29,16 +29,18 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y musl-tools build-essential gcc
-    - name: Set up linker for musl
-      if: matrix.os == 'ubuntu-latest'
+    - name: Set up Cargo config
       run: |
-        echo "[target.x86_64-unknown-linux-musl]" >> ~/.cargo/config
-        echo "linker = \"musl-gcc\"" >> ~/.cargo/config
-    - name: Set up linker for gnu
-      if: matrix.target == 'x86_64-unknown-linux-musl'
-      run: |
-        echo "[target.x86_64-unknown-linux-musl]" >> ~/.cargo/config
-        echo "linker = \"gcc\"" >> ~/.cargo/config
+        mkdir -p ~/.cargo
+        echo '[target.x86_64-pc-windows-gnu]' >> ~/.cargo/config
+        echo 'rustflags = ["-C", "target-feature=+crt-static"]' >> ~/.cargo/config
+        echo '[target.x86_64-unknown-linux-musl]' >> ~/.cargo/config
+        echo 'rustflags = ["-C", "target-feature=-crt-static"]' >> ~/.cargo/config
+        echo 'linker = "musl-gcc"' >> ~/.cargo/config
+        echo '[target.x86_64-apple-darwin]' >> ~/.cargo/config
+        echo 'rustflags = ["-C", "target-feature=-crt-static"]' >> ~/.cargo/config
+        echo '[target.aarch64-apple-darwin]' >> ~/.cargo/config
+        echo 'rustflags = ["-C", "target-feature=-crt-static"]' >> ~/.cargo/config
     - name: Build
       run: |
         rustc -vV
