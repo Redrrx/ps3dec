@@ -14,7 +14,6 @@ type Aes128CbcDec = Decryptor<Aes128Dec>;
 pub struct Region {
     start: u64,
     end: u64,
-    encrypted: bool,
 }
 
 // Reliability is uncertain on key validation.
@@ -51,9 +50,7 @@ pub fn is_encrypted(regions: &[Region], sector: u64, sector_data: &[u8]) -> bool
     if sector_data.iter().all(|&b| b == 0) {
         return false;
     }
-    regions
-        .iter()
-        .any(|r| r.start <= sector && sector <= r.end && r.encrypted)
+    regions.iter().any(|r| sector >= r.start && sector < r.end)
 }
 
 pub fn decrypt_sector(cipher: &mut Aes128CbcDec, sector_data: &mut [u8]) -> io::Result<()> {
@@ -86,7 +83,6 @@ pub fn extract_regions(reader: &mut MutexGuard<BufReader<File>>) -> io::Result<V
         regions.push(Region {
             start: start_sector as u64,
             end: end_sector as u64,
-            encrypted: is_encrypted,
         });
 
         is_encrypted = !is_encrypted;
