@@ -12,7 +12,6 @@ use log4rs::{
     config::{Appender, Config, Root},
     encode::pattern::PatternEncoder,
 };
-
 use ps3decremake::decrypt;
 use std::io::{self};
 use std::path::Path;
@@ -52,11 +51,15 @@ fn main() -> io::Result<()> {
 
     if args.len() == 2 && args[1] == "--help" {
         let _ = Ps3decargs::parse_from(&["", "--help"]);
+        return Ok(());
     }
 
     env::set_var("RUST_LOG", "info");
     setup_logging().expect("yikes");
-    let ps3_args = if args.len() == 2 {
+
+    let mut skip_wait = false;
+
+    if args.len() == 2 {
         let maybe_dragdrop_path = env::args().nth(1);
         if let Some(dragdrop) = maybe_dragdrop_path {
             let path = Path::new(&dragdrop);
@@ -70,21 +73,17 @@ fn main() -> io::Result<()> {
                 }
             }
         }
-        None
-    } else {
-        Some(Ps3decargs::parse())
-    };
-
-    if let Some(args) = ps3_args {
-        if args.auto {
-            let split = &args.iso.split(".iso").next().unwrap_or("");
+    } else if args.len() > 1 {
+        let ps3_args = Ps3decargs::parse();
+        if ps3_args.auto {
+            let split = &ps3_args.iso.split(".iso").next().unwrap_or("");
             if let Ok(Some(key)) = detect_key(split.to_string()) {
-                decrypt(args.iso, &key, args.tc)?;
+                decrypt(ps3_args.iso, &key, ps3_args.tc)?;
             }
         } else {
-            if let Some(dk) = args.dk {
+            if let Some(dk) = ps3_args.dk {
                 if key_validation(&dk) {
-                    decrypt(args.iso, &dk, args.tc)?;
+                    decrypt(ps3_args.iso, &dk, ps3_args.tc)?;
                 } else {
                     error!("Error: Invalid PS3 decryption key format.");
                 }
@@ -92,15 +91,16 @@ fn main() -> io::Result<()> {
                 error!("Error: Decryption key is required unless '--auto' is specified.");
             }
         }
+        skip_wait = ps3_args.skip;
+    }
 
-        if !args.skip {
-            info!("Job done, press any button to exit...");
-            let mut input_string = String::new();
-            io::stdin()
-                .read_line(&mut input_string)
-                .expect("Failed to read line");
-            info!("Ciao!");
-        }
+    if !skip_wait {
+        info!("Job done, press any button to exit...");
+        let mut input_string = String::new();
+        io::stdin()
+            .read_line(&mut input_string)
+            .expect("Failed to read line");
+        info!("Ciao!");
     }
 
     Ok(())
