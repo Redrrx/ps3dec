@@ -76,7 +76,12 @@ fn main() -> io::Result<()> {
     } else if args.len() > 1 {
         let ps3_args = Ps3decargs::parse();
         if ps3_args.auto {
-            let split = &ps3_args.iso.split(".iso").next().unwrap_or("");
+            let path = Path::new(&ps3_args.iso);
+            let file_name = path.file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("");
+            let split = file_name.split(".iso").next().unwrap_or("");
+            debug!("File name: {}", split.to_string());
             if let Ok(Some(key)) = detect_key(split.to_string()) {
                 decrypt(ps3_args.iso, &key, ps3_args.tc)?;
             }
