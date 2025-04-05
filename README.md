@@ -63,6 +63,38 @@ key are compatible.
 ps3dec.exe --iso game.iso --auto --tc 64
 ```
 
+## Building PS3dec
+
+This works for MacOS, Linux and windows
+
+1. Install Rust from https://rustup.rs/
+2. Clone the repository run ```git clone https://github.com/Redrrx/ps3dec
+cd ps3dec```
+3. make sure to close and reopen your terminal for proper rust install to be recognized
+4. ```cargo build --release```
+
+the output would be at /target
+If on linux run ```chmod+x target/release/ps3dec``` to make ps3dec an executable.
+
+<sub>a very small note around here, if there's an issue that is specifically related to a library  when its targeting a platform i don't have much i can do about it but you can fork the repository and find a replacement or a custom implementation, but this is unlikely as most of the libraries used are not reliant on any critical platform specific implementations and mostly standard ie: win api etc...</sup>
+
+### Building for a special platform?
+
+Run cargo check to check for compatibility:  
+
+`cargo check --target <target-triple>`
+
+Use this command to add your new target platform
+
+`rustup target add <target-triple>` 
+
+Then build for the target using:  
+
+`cargo build --release --target <target-triple>`
+
+more on targets [here](https://doc.rust-lang.org/nightly/rustc/platform-support.html)
+
+
 ## Releases types
 
 If you visit the releases page you might find two types
@@ -76,6 +108,7 @@ If you visit the releases page you might find two types
 - [Aldostools PS3 ird Databases](https://ps3.aldostools.org/ird.html)
 - [Psdevwiki Bluray information ](https://www.psdevwiki.com/ps3/Bluray_disc)
 - [Understanding PS3 disk encryption](https://www.psx-place.com/threads/3k3y-iso-tools-understanding-ps3-disk-encryption.29903/)
+- The people who open issues/suggestions when they have any :D
 
 
 
