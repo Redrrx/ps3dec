@@ -2,8 +2,8 @@ use log::{info, warn};
 use std::fs;
 
 // Only usable if the keys folder exists
-pub fn detect_key(game_name: String) -> Result<Option<String>, String> {
-    match fs::read_dir("keys") {
+pub fn detect_key(keys: String, game_name: String) -> Result<Option<String>, String> {
+    match fs::read_dir(keys) {
         Ok(files) => {
             for entry in files {
                 let file = entry.map_err(|e| e.to_string())?;

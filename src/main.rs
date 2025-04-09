@@ -59,6 +59,8 @@ fn main() -> io::Result<()> {
 
     let mut skip_wait = false;
 
+    let ps3_args = Ps3decargs::parse();
+
     if args.len() == 2 {
         let maybe_dragdrop_path = env::args().nth(1);
         if let Some(dragdrop) = maybe_dragdrop_path {
@@ -66,7 +68,7 @@ fn main() -> io::Result<()> {
             if dragdrop.ends_with(".iso") {
                 let filename_str = path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
                 debug!("Received drag-and-drop file name: {}", filename_str);
-                if let Ok(Some(key)) = detect_key(filename_str.to_string()) {
+                if let Ok(Some(key)) = detect_key(ps3_args.keys.to_string(), filename_str.to_string()) {
                     decrypt(dragdrop, &key, 64)?;
                 } else {
                     error!("No key found for {}", filename_str);
@@ -74,10 +76,14 @@ fn main() -> io::Result<()> {
             }
         }
     } else if args.len() > 1 {
-        let ps3_args = Ps3decargs::parse();
         if ps3_args.auto {
-            let split = &ps3_args.iso.split(".iso").next().unwrap_or("");
-            if let Ok(Some(key)) = detect_key(split.to_string()) {
+            let path = Path::new(&ps3_args.iso);
+            let file_name = path.file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("");
+            let split = file_name.split(".iso").next().unwrap_or("");
+            debug!("File name: {}", split.to_string());
+            if let Ok(Some(key)) = detect_key(ps3_args.keys.to_string(), split.to_string()) {
                 decrypt(ps3_args.iso, &key, ps3_args.tc)?;
             }
         } else {
