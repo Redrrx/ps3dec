@@ -38,6 +38,6 @@ path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "ps3decrs"
+name = "ps3dec"
 path = "src/main.rs"
 
