@@ -28,33 +28,26 @@ keeping the data in memory.
 
 Decrypting MX vs. ATV Untamed (USA) in less than 2 seconds on a fast enough rig! sometimes increasing the thread count too high might add a slight overhead for the dec process to start.
 
-
-
 Please bear in mind this demonstration is done on some very idealistic conditions with a very good CPU and a good SSD.
-
-
 
 https://github.com/user-attachments/assets/978c1827-d788-449a-a52f-6743e94cb4db
 
 
-
 ## Usage
 
-| Option          | Description                                                       | Note                                                      |
-|-----------------|-------------------------------------------------------------------|-----------------------------------------------------------|
-| `--iso`         | For the ISO file                                                  |                                                           |
-| `--dk`          | For decryption key, a base-16 hex key                             |                                                           |
-| `--tc`          | Thread count, specifies the number of threads                     | Be careful with this one                                  |
-| `--auto`        | Enables automatic key detection and decryption                    | Will only work if there is the key in the **keys** folder |
-| `--skip`        | Disables the press any key to exit after decryption               |                                                           |    
-| `--output_dir`  | output directory destination for the decrypted iso                |                                                           |
-| `--output_name` | output file name for the decrypted iso                            |                                                           |
-| `--chunk-size`  | how big the chunk of the iso is processed at the same time in MIB | Read down below about chunk size section.                 |
-
+| Option                   | Description                                                       | Note                                                        |
+|--------------------------|-------------------------------------------------------------------|-------------------------------------------------------------|
+| `-k`, `--decryption_key` | For decryption key, a base-16 hex key                             |                                                             |
+| `-t`, `--num_threads`    | Thread count, specifies the number of threads                     | Be careful with this one                                    |
+| `--auto`                 | Enables automatic key detection and decryption                    | Will only work if there is the key in the **./keys** folder |
+| `-s`, `--skip`           | Disables the press any key to exit after decryption               |                                                             |
+| `-o`, `--output_dir`     | output directory destination for the decrypted iso                |                                                             |
+| `-n`, `--output_name`    | output file name for the decrypted iso                            |                                                             |
+| `-c`, `--chunk_size`     | how big the chunk of the iso is processed at the same time in MIB | Read down below about chunk size section.                   |
 
 
 ```
-ps3dec.exe --iso game.iso --dk yourdecryptionkey --tc 64 --chunk-size 16
+ps3dec game.iso -k yourdecryptionkey -t 64 -c 16
 ```
 
 If you don't want to keep changing your decryption key every time you can use --auto flag , which will look
@@ -63,11 +56,11 @@ here  [Aldostools dkeys](https://ps3.aldostools.org/dkey.html)  , to note that o
 key are compatible.
 
 ```
-ps3dec.exe --iso game.iso --auto --tc 64
+ps3dec game.iso --auto -t 64
 ```
 
 ### about chunk size parameter
-I have added a new flag called `--chunk-size` It defines how many bytes you read, decrypt, and write per thread!
+I have added a new flag called `--chunk_size` It defines how many bytes you read, decrypt, and write per thread!
 we batch sectors in a chunk and decrypt them then write to disk.
 this was a request, and I am not sure how much benefit this can bring besides tweaking ram and disk usage.
 

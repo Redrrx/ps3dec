@@ -1,124 +1,158 @@
-
-use clap::Parser;
-use log::{ error, info};
+use clap::{Arg, ArgAction, command, crate_authors, crate_version};
+use log::{error, info};
+use std::env;
 use std::io::{self};
-use std::path::Path;
-use std::{env,};
+use std::path::PathBuf;
 use std::process::exit;
-pub mod args;
 pub mod autodetect;
 pub mod utils;
 
+use ps3dec::DEFAULT_CHUNK;
 
-pub use utils::{
-    read_exact_at, write_all_at, extract_regions, generate_iv, is_encrypted,
-     setup_logging,
-};
-use crate::args::{Ps3decargs, DEFAULT_CHUNK};
+// use crate::args::{DEFAULT_CHUNK, Ps3decargs};
 use crate::autodetect::detect_key;
 use crate::utils::key_validation;
+pub use utils::{
+    extract_regions, generate_iv, is_encrypted, read_exact_at, setup_logging, write_all_at,
+};
 
 // Either drag and drop which will auto-detect key, OR launch through CLI.
 fn main() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() == 2 && args[1] == "--help" {
-        let _ = Ps3decargs::parse_from(["", "--help"]);
-        return Ok(());
-    }
     setup_logging().expect("Failed to setup logging");
-    let ps3_args = Ps3decargs::parse();
-    if args.len() == 2 {
-        // drag & drop / single-arg path
-        let raw = &args[1];
-        let dragdrop = raw.trim_matches(|c| c == '"' || c == '\''); 
-        let path = Path::new(dragdrop);
 
-        let is_iso = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .map(|e| e.eq_ignore_ascii_case("iso"))
-            .unwrap_or(false);
+    let matches = command!()
+        .author(crate_authors!("\n"))
+        .version(crate_version!())
+        .about("PS3dec Remake is a remake of the original PS3 DISC decryption tool in rust")
+        .long_about("PS3Dec is a tool to decrypt PS3 Redump ISOs...")
+        .arg(
+            Arg::new("iso")
+                .help("Path to the PS3 ISO file to decrypt.")
+                .required(true),
+        )
+        .arg(
+            Arg::new("decryption_key")
+                .short('k')
+                .long("decryption-key")
+                .help("Decryption key (32 hex).")
+                .conflicts_with("auto"),
+        )
+        .arg(
+            Arg::new("num_threads")
+                .short('t')
+                .long("num_threads")
+                .help("Number of threads to use for decryption.")
+                .default_value("16"),
+        )
+        .arg(
+            Arg::new("auto")
+                .long("auto")
+                .help("Autodetect key from ISO name.")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("skip")
+                .short('s')
+                .long("skip")
+                .help("Skip exit confirmation.")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("output_dir")
+                .short('o')
+                .long("output_dir")
+                .help("Output directory."),
+        )
+        .arg(
+            Arg::new("output_name")
+                .short('n')
+                .long("output_name")
+                .help("Output filename (without extension)."),
+        )
+        .arg(
+            Arg::new("chunk_size")
+                .short('c')
+                .long("chunk_size")
+                .help("Chunk size in MiB."), // can't use default_value() because clap is ass
+        )
+        .get_matches();
 
-        if is_iso {
-            let filename = path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
+    // Can't directly convert to PathBuf because yet again clap is ass.
+    let Some(iso_path) = matches.get_one::<String>("iso") else {
+        error!("The iso path must be a valid path");
+        exit(1);
+    };
+    let iso_path = PathBuf::from(iso_path);
 
-            info!("ISO path: {}", path.display());
-            if let Ok(c) = path.canonicalize() {
-                info!("Canonical path: {}", c.display());
-            }
-            info!("Filename used for key lookup: {}", filename);
-
-            match detect_key(filename.to_string()) {
-                Ok(Some(key)) => {
-                    info!("Detected key for {}: {}", filename, key);
-                    ps3dec::decrypt(dragdrop.to_string(), &key, num_cpus::get(), None, None,DEFAULT_CHUNK)?;
-                }
-                _ => error!("No key found for {}", filename),
-            }
-        } else {
-            error!("The file must be an ISO file with .iso extension");
-        }
-    } else if args.len() > 1 {
-        let ps3_args = Ps3decargs::parse();
-        let p = Path::new(&ps3_args.iso);
-        let is_iso = p
-            .extension()
-            .and_then(|e| e.to_str())
-            .map(|e| e.eq_ignore_ascii_case("iso"))
-            .unwrap_or(false);
-        if !is_iso {
-            error!("The file must be an ISO file with .iso extension");
-            return Ok(());
-        }
-
-        let filename = p.file_stem().and_then(|f| f.to_str()).unwrap_or("");
-        info!("ISO path: {}", p.display());
-        if let Ok(c) = p.canonicalize() {
-            info!("Canonical path: {}", c.display());
-        }
-        info!("Filename used for key lookup: {}", filename);
-
-        if ps3_args.auto {
-            if let Ok(Some(key)) = detect_key(filename.to_string()) {
-                info!("Auto-detected key for {}: {}", filename, key);
-                ps3dec::decrypt(
-                    ps3_args.iso,
-                    &key,
-                    ps3_args.tc,
-                    ps3_args.output_dir,
-                    ps3_args.output_name,
-                    ps3_args.chunk_size
-                )?;
-            } else {
-                error!("No key could be auto-detected for {}", filename);
-            }
-        } else if let Some(dk) = ps3_args.dk {
-            if key_validation(&dk) {
-                info!("Using provided decryption key: {}", dk);
-                ps3dec::decrypt(
-                    ps3_args.iso,
-                    &dk,
-                    ps3_args.tc,
-                    ps3_args.output_dir,
-                    ps3_args.output_name,
-                    ps3_args.chunk_size,
-                )?;
-            } else {
-                error!("Error: Invalid PS3 decryption key format.");
-            }
-        } else {
-            error!("Error: Decryption key is required unless '--auto' is specified.");
-        }
-
-    } else {
-        error!("Please provide an ISO file path. Use --help for more information.");
-        exit(0)
+    let is_iso = iso_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.eq_ignore_ascii_case("iso"))
+        .unwrap_or(false);
+    if !is_iso {
+        error!("The file must be an ISO file with .iso extension");
+        exit(1);
     }
 
-    if !ps3_args.skip {
+    let filename = iso_path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
+    info!("ISO path: {}", iso_path.display());
+    if let Ok(c) = iso_path.canonicalize() {
+        info!("Canonical path: {}", c.display());
+    }
+    info!("Filename used for key lookup: {}", filename);
+
+    let decryption_key = if matches.get_flag("auto") {
+        if let Ok(Some(key)) = detect_key(filename) {
+            info!("Auto-detected key for {}: {}", filename, key);
+            key
+        } else {
+            error!("No key could be auto-detected for {}", filename);
+            exit(1);
+        }
+    } else if let Some(key) = matches.get_one::<String>("decryption_key") {
+        if key_validation(&key) {
+            info!("Using provided decryption key: {}", key);
+            key.clone()
+        } else {
+            error!("Invalid PS3 decryption key format.");
+            exit(1);
+        }
+    } else {
+        error!("Decryption key is required unless '--auto' is specified.");
+        exit(1);
+    };
+
+    let num_threads = matches.get_one::<String>("num_threads").unwrap();
+    let num_threads = usize::from_str_radix(num_threads, 10).unwrap();
+    let output_dir = matches
+        .get_one::<PathBuf>("output_dir")
+        .map(|f| f.as_path());
+    let output_name = matches
+        .get_one::<PathBuf>("output_name")
+        .map(|f| f.as_path());
+
+    let chunk_bytes = match matches.get_one::<String>("chunk_size") {
+        Some(s) => usize::from_str_radix(s, 10)
+            .map(|mib| mib.saturating_mul(1024 * 1024))
+            .unwrap(),
+        None => DEFAULT_CHUNK,
+    };
+
+    ps3dec::decrypt(
+        &iso_path,
+        &decryption_key,
+        num_threads,
+        output_dir,
+        output_name,
+        chunk_bytes,
+    )?;
+
+    if !matches.get_flag("skip") {
         info!("Job done, press any button to exit...");
         let mut input_string = String::new();
-        io::stdin().read_line(&mut input_string).expect("Failed to read line");
+        io::stdin()
+            .read_line(&mut input_string)
+            .expect("Failed to read line");
         info!("Ciao!");
     }
 

@@ -2,7 +2,7 @@ use log::{info, warn};
 use std::fs;
 
 // Only usable if the keys folder exists
-pub fn detect_key(game_name: String) -> Result<Option<String>, String> {
+pub fn detect_key(game_name: &str) -> Result<Option<String>, String> {
     match fs::read_dir("keys") {
         Ok(files) => {
             for entry in files {
@@ -11,9 +11,9 @@ pub fn detect_key(game_name: String) -> Result<Option<String>, String> {
 
                 if filepath.is_file()
                     && filepath
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|filename| filename.contains(&game_name))
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .is_some_and(|filename| filename.contains(&game_name))
                 {
                     let msg = format!("Found key: {}", filepath.display());
                     info!("{}", &msg);

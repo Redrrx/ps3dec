@@ -1,16 +1,11 @@
 use aes::cipher::consts::U16;
 use aes::cipher::generic_array::GenericArray;
 use chrono::Local;
-use log::{info, warn, LevelFilter};
+use fern::Dispatch;
+use log::{LevelFilter, info, warn};
 use std::fs::File;
+use std::io::{Read, Seek, SeekFrom};
 use std::{fs, io};
-use std::io::{ Read, Seek, SeekFrom};
-use log4rs::{
-    append::{console::ConsoleAppender, file::FileAppender},
-    config::{Appender, Config, Root},
-    encode::pattern::PatternEncoder,
-};
-
 
 #[cfg(unix)]
 use std::os::unix::fs::FileExt as _;
@@ -18,12 +13,13 @@ use std::os::unix::fs::FileExt as _;
 use std::os::windows::fs::FileExt as _;
 use std::path::Path;
 
-
 #[cfg(unix)]
 pub fn read_exact_at(file: &File, mut buf: &mut [u8], mut off: u64) -> io::Result<()> {
     while !buf.is_empty() {
         let n = file.read_at(buf, off)?;
-        if n == 0 { return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "read_at=0")); }
+        if n == 0 {
+            return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "read_at=0"));
+        }
         buf = &mut buf[n..];
         off += n as u64;
     }
@@ -33,7 +29,9 @@ pub fn read_exact_at(file: &File, mut buf: &mut [u8], mut off: u64) -> io::Resul
 pub fn read_exact_at(file: &File, mut buf: &mut [u8], mut off: u64) -> io::Result<()> {
     while !buf.is_empty() {
         let n = file.seek_read(buf, off)?;
-        if n == 0 { return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "seek_read=0")); }
+        if n == 0 {
+            return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "seek_read=0"));
+        }
         buf = &mut buf[n..];
         off += n as u64;
     }
@@ -44,7 +42,9 @@ pub fn read_exact_at(file: &File, mut buf: &mut [u8], mut off: u64) -> io::Resul
 pub fn write_all_at(file: &File, mut buf: &[u8], mut off: u64) -> io::Result<()> {
     while !buf.is_empty() {
         let n = file.write_at(buf, off)?;
-        if n == 0 { return Err(io::Error::new(io::ErrorKind::WriteZero, "write_at=0")); }
+        if n == 0 {
+            return Err(io::Error::new(io::ErrorKind::WriteZero, "write_at=0"));
+        }
         buf = &buf[n..];
         off += n as u64;
     }
@@ -54,13 +54,14 @@ pub fn write_all_at(file: &File, mut buf: &[u8], mut off: u64) -> io::Result<()>
 pub fn write_all_at(file: &File, mut buf: &[u8], mut off: u64) -> io::Result<()> {
     while !buf.is_empty() {
         let n = file.seek_write(buf, off)?;
-        if n == 0 { return Err(io::Error::new(io::ErrorKind::WriteZero, "seek_write=0")); }
+        if n == 0 {
+            return Err(io::Error::new(io::ErrorKind::WriteZero, "seek_write=0"));
+        }
         buf = &buf[n..];
         off += n as u64;
     }
     Ok(())
 }
-
 
 pub struct Region {
     start: u64,
@@ -105,8 +106,6 @@ pub fn is_encrypted(regions: &[Region], sector: u64, sector_data: &[u8]) -> bool
     regions.iter().any(|r| sector >= r.start && sector < r.end)
 }
 
-
-
 // Splitting the cake
 pub fn extract_regions<R: Read + Seek>(reader: &mut R) -> io::Result<Vec<Region>> {
     let mut header = [0u8; 4096];
@@ -138,33 +137,25 @@ pub fn extract_regions<R: Read + Seek>(reader: &mut R) -> io::Result<Vec<Region>
     Ok(regions)
 }
 
-
 pub fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
     let log_dir = Path::new("log");
     fs::create_dir_all(log_dir)?;
     let now = Local::now();
     let log_file_name = format!("log/{}.log", now.format("%Y-%m-%d_%H-%M-%S"));
 
-    let fmt = "{d(%Y-%m-%d %H:%M:%S)} [{l}] - {m}\n";
+    Dispatch::new()
+        .format(move |out, message, record| {
+            out.finish(format_args!(
+                "{} [{}] - {}",
+                now.format("%Y-%m-%d_%H-%M-%S"),
+                record.level(),
+                message
+            ))
+        })
+        .level(LevelFilter::Debug)
+        .chain(std::io::stdout())
+        .chain(fern::log_file(log_file_name)?)
+        .apply()?;
 
-    let stdout = ConsoleAppender::builder()
-        .encoder(Box::new(PatternEncoder::new(fmt)))
-        .build();
-
-    let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new(fmt)))
-        .build(log_file_name)?;
-
-    let config = Config::builder()
-        .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(
-            Root::builder()
-                .appender("stdout")
-                .appender("logfile")
-                .build(LevelFilter::Trace),
-        )?;
-
-    log4rs::init_config(config)?;
     Ok(())
 }
