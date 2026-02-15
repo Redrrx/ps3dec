@@ -20,7 +20,7 @@ indicatif = "0.18.0"
 rayon = "1.9.0"
 generic-array = "1.2.0"
 log = "0.4"
-log4rs = "1.0"
+fern = "0.7.1"
 chrono = "0.4"
 num_cpus = "1.17.0"
 
