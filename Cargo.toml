@@ -13,7 +13,7 @@ include = ["src/**", "Cargo.toml", "README*", "LICENSE*"]
 
 
 [dependencies]
-clap = { version = "4.5.2", features = ["derive"] }
+clap = { version = "4.5.2", features = ["cargo"] }
 aes = "0.8.4"
 hex = "0.4.3"
 indicatif = "0.18.0"
