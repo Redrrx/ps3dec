@@ -18,15 +18,15 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: ps3dec-linux
+            artifact_name: ps3decrs
             asset_name: ps3dec-linux.tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: ps3dec.exe
+            artifact_name: ps3decrs.exe
             asset_name: ps3dec-windows.zip
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: ps3dec
+            artifact_name: ps3decrs
             asset_name: ps3dec-macos.tar.gz
 
     steps:
@@ -66,7 +66,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v') # Erstellt nur ein echtes Release, wenn ein Tag gepusht wurde
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
