@@ -1,0 +1,182 @@
+name: Build and Release PS3Dec
+
+on:
+  push:
+    branches: [main, dev]
+    tags: ['v*']
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            binary: ps3dec
+            archive: tar.gz
+            rustflags: ''
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            binary: ps3dec
+            archive: tar.gz
+            rustflags: ''
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            binary: ps3dec.exe
+            archive: zip
+            rustflags: '-C target-feature=+crt-static'
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            binary: ps3dec.exe
+            archive: zip
+            rustflags: '-C target-feature=+crt-static'
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            binary: ps3dec
+            archive: tar.gz
+            rustflags: ''
+          - os: macos-15
+            target: aarch64-apple-darwin
+            binary: ps3dec
+            archive: tar.gz
+            rustflags: ''
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TERM_COLOR: always
+      TARGET: ${{ matrix.target }}
+      BINARY: ${{ matrix.binary }}
+      ASSET: ps3dec-${{ matrix.target }}.${{ matrix.archive }}
+      RUSTFLAGS: ${{ matrix.rustflags }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install the repository's pinned Rust toolchain
+        run: |
+          rustup show active-toolchain
+          rustup target add "$TARGET"
+          rustc --version
+          cargo --version
+
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+        with:
+          key: ${{ matrix.target }}
+          save-if: ${{ github.event_name != 'pull_request' }}
+
+      - name: Build release binary
+        run: cargo build --release --locked --bin ps3dec --target "$TARGET"
+
+      - name: Smoke-check the native executable
+        run: '"target/$TARGET/release/$BINARY" --help'
+
+      - name: Install ISO fixture tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y genisoimage openssl
+
+      - name: End-to-end decryption checks
+        if: runner.os == 'Linux'
+        run: |
+          cargo build --locked --bin ps3dec
+          python3 -B tests/e2e.py
+
+      - name: Prepare package
+        run: |
+          mkdir dist
+          cp "target/$TARGET/release/$BINARY" README.md LICENSE dist/
+          {
+            printf 'Commit: %s\nTarget: %s\n' "$GITHUB_SHA" "$TARGET"
+            rustc --version
+          } > dist/BUILD.txt
+
+      - name: Package Windows ZIP
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist/* -DestinationPath $env:ASSET
+
+      - name: Package Linux / macOS tarball
+        if: runner.os != 'Windows'
+        run: tar -czf "$ASSET" -C dist .
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ps3dec-${{ matrix.target }}
+          path: ${{ env.ASSET }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  release:
+    name: Publish release
+    needs: build
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout full history for branch validation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify stable release comes from main
+        if: startsWith(github.ref, 'refs/tags/')
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Download all platform archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: ps3dec-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: artifacts
+        run: sha256sum *.tar.gz *.zip > SHA256SUMS
+
+      - name: Publish release with generated notes
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
+        with:
+          tag: ${{ github.ref == 'refs/heads/dev' && format('dev-{0}', github.run_number) || github.ref_name }}
+          commit: ${{ github.sha }}
+          prerelease: ${{ github.ref == 'refs/heads/dev' }}
+          makeLatest: ${{ github.ref != 'refs/heads/dev' }}
+          generateReleaseNotes: true
+          body: |
+            Built from commit [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).
+            [Build run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+            Verify downloads with SHA256SUMS.
+          artifacts: artifacts/*.tar.gz,artifacts/*.zip,artifacts/SHA256SUMS
+          artifactErrorsFailBuild: true
+          immutableCreate: true
+          skipIfReleaseExists: true
+          allowUpdates: true

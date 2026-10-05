@@ -8,29 +8,35 @@ readme = "README.md"
 license = "MIT"
 keywords = ["ps3", "iso", "decryption", "bluray"]
 categories = ["command-line-utilities", "cryptography"]
-rust-version = "1.85"
+rust-version = "1.88"
 include = ["src/**", "Cargo.toml", "README*", "LICENSE*"]
 
 
 [dependencies]
 clap = { version = "4.5.2", features = ["derive"] }
 aes = "0.8.4"
+cbc = "0.1.2"
 hex = "0.4.3"
 indicatif = "0.18.0"
+console = "0.16.1"
+ratatui = { version = "0.30.2", default-features = false, features = ["crossterm", "std"] }
 rayon = "1.9.0"
-generic-array = "1.2.0"
 log = "0.4"
 log4rs = "1.0"
 chrono = "0.4"
 num_cpus = "1.17.0"
+atomicwrites = "0.4.4"
+fs2 = "0.4.3"
+same-file = "1.0.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10.9"
 
 [profile.release]
 opt-level = 3
 strip = true
 lto = "fat"
 
-[build]
-rustflags = ["-C", "target-cpu=native"]
 
 [lib]
 name = "ps3dec"
@@ -38,6 +44,5 @@ path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "ps3decrs"
+name = "ps3dec"
 path = "src/main.rs"
-
