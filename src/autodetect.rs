@@ -11,12 +11,12 @@ pub fn detect_key(game_name: String) -> Result<Option<String>, String> {
 
                 if filepath.is_file()
                     && filepath
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|filename| filename.contains(&game_name))
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .is_some_and(|filename| filename.contains(&game_name))
                 {
                     let msg = format!("Found key: {}", filepath.display());
-                    info!("{}", &msg);
+                    info!("{msg}");
 
                     let key_data = fs::read(&filepath).map_err(|e| e.to_string())?;
                     let key_string = String::from_utf8(key_data)
@@ -33,14 +33,12 @@ pub fn detect_key(game_name: String) -> Result<Option<String>, String> {
             }
 
             let msg = "Key not found".to_string();
-            println!("{}", &msg);
-            warn!("{}", &msg);
+            warn!("{msg}");
             Ok(None)
         }
         Err(e) => {
             let msg = format!("Failed to read 'keys' directory: {}", e);
-            println!("{}", &msg);
-            warn!("{}", &msg);
+            warn!("{msg}");
             Err(e.to_string())
         }
     }

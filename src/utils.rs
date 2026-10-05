@@ -1,29 +1,25 @@
 use aes::cipher::consts::U16;
 use aes::cipher::generic_array::GenericArray;
-use chrono::Local;
-use log::{info, warn, LevelFilter};
+use log::{info, warn};
 use std::fs::File;
-use std::{fs, io};
-use std::io::{ Read, Seek, SeekFrom};
-use log4rs::{
-    append::{console::ConsoleAppender, file::FileAppender},
-    config::{Appender, Config, Root},
-    encode::pattern::PatternEncoder,
-};
-
+use std::io;
+use std::io::{Read, Seek, SeekFrom};
 
 #[cfg(unix)]
 use std::os::unix::fs::FileExt as _;
 #[cfg(windows)]
 use std::os::windows::fs::FileExt as _;
-use std::path::Path;
-
 
 #[cfg(unix)]
 pub fn read_exact_at(file: &File, mut buf: &mut [u8], mut off: u64) -> io::Result<()> {
     while !buf.is_empty() {
-        let n = file.read_at(buf, off)?;
-        if n == 0 { return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "read_at=0")); }
+        let n = match file.read_at(buf, off) {
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+            result => result?,
+        };
+        if n == 0 {
+            return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "read_at=0"));
+        }
         buf = &mut buf[n..];
         off += n as u64;
     }
@@ -32,8 +28,13 @@ pub fn read_exact_at(file: &File, mut buf: &mut [u8], mut off: u64) -> io::Resul
 #[cfg(windows)]
 pub fn read_exact_at(file: &File, mut buf: &mut [u8], mut off: u64) -> io::Result<()> {
     while !buf.is_empty() {
-        let n = file.seek_read(buf, off)?;
-        if n == 0 { return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "seek_read=0")); }
+        let n = match file.seek_read(buf, off) {
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+            result => result?,
+        };
+        if n == 0 {
+            return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "seek_read=0"));
+        }
         buf = &mut buf[n..];
         off += n as u64;
     }
@@ -43,8 +44,13 @@ pub fn read_exact_at(file: &File, mut buf: &mut [u8], mut off: u64) -> io::Resul
 #[cfg(unix)]
 pub fn write_all_at(file: &File, mut buf: &[u8], mut off: u64) -> io::Result<()> {
     while !buf.is_empty() {
-        let n = file.write_at(buf, off)?;
-        if n == 0 { return Err(io::Error::new(io::ErrorKind::WriteZero, "write_at=0")); }
+        let n = match file.write_at(buf, off) {
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+            result => result?,
+        };
+        if n == 0 {
+            return Err(io::Error::new(io::ErrorKind::WriteZero, "write_at=0"));
+        }
         buf = &buf[n..];
         off += n as u64;
     }
@@ -53,14 +59,18 @@ pub fn write_all_at(file: &File, mut buf: &[u8], mut off: u64) -> io::Result<()>
 #[cfg(windows)]
 pub fn write_all_at(file: &File, mut buf: &[u8], mut off: u64) -> io::Result<()> {
     while !buf.is_empty() {
-        let n = file.seek_write(buf, off)?;
-        if n == 0 { return Err(io::Error::new(io::ErrorKind::WriteZero, "seek_write=0")); }
+        let n = match file.seek_write(buf, off) {
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+            result => result?,
+        };
+        if n == 0 {
+            return Err(io::Error::new(io::ErrorKind::WriteZero, "seek_write=0"));
+        }
         buf = &buf[n..];
         off += n as u64;
     }
     Ok(())
 }
-
 
 pub struct Region {
     start: u64,
@@ -105,66 +115,47 @@ pub fn is_encrypted(regions: &[Region], sector: u64, sector_data: &[u8]) -> bool
     regions.iter().any(|r| sector >= r.start && sector < r.end)
 }
 
-
-
 // Splitting the cake
 pub fn extract_regions<R: Read + Seek>(reader: &mut R) -> io::Result<Vec<Region>> {
-    let mut header = [0u8; 4096];
+    let mut header = [0u8; 2048];
     reader.seek(SeekFrom::Start(0))?;
     reader.read_exact(&mut header)?;
     let num_normal_regions = u32::from_be_bytes(header[0..4].try_into().unwrap()) as usize;
-    let regions_count = (num_normal_regions * 2) - 1;
-    let mut regions = Vec::with_capacity(regions_count);
+    if num_normal_regions == 0 {
+        return Err(io::Error::other("invalid region map: zero regions"));
+    }
+    if num_normal_regions > (header.len() - 8) / 8 {
+        return Err(io::Error::other(
+            "region map too large for 2048-byte sector",
+        ));
+    }
+    let mut regions = Vec::with_capacity(num_normal_regions - 1);
 
-    let mut is_encrypted = false;
-    for i in 0..regions_count {
-        let region_offset = 4 + i * 8;
-        let start_sector =
-            u32::from_be_bytes(header[region_offset..region_offset + 4].try_into().unwrap());
-        let end_sector = u32::from_be_bytes(
+    let mut previous_end = 0u64;
+    for i in 0..num_normal_regions {
+        let region_offset = 8 + i * 8;
+        let start =
+            u32::from_be_bytes(header[region_offset..region_offset + 4].try_into().unwrap()) as u64;
+        let inclusive_end = u32::from_be_bytes(
             header[region_offset + 4..region_offset + 8]
                 .try_into()
                 .unwrap(),
-        );
+        ) as u64;
+        let end = inclusive_end + 1;
 
-        regions.push(Region {
-            start: start_sector as u64,
-            end: end_sector as u64,
-        });
-
-        is_encrypted = !is_encrypted;
+        if start >= end || (i > 0 && start < previous_end) {
+            return Err(io::Error::other(
+                "invalid region map: reversed or overlapping regions",
+            ));
+        }
+        if i > 0 && previous_end < start {
+            regions.push(Region {
+                start: previous_end,
+                end: start,
+            });
+        }
+        previous_end = end;
     }
 
     Ok(regions)
-}
-
-
-pub fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
-    let log_dir = Path::new("log");
-    fs::create_dir_all(log_dir)?;
-    let now = Local::now();
-    let log_file_name = format!("log/{}.log", now.format("%Y-%m-%d_%H-%M-%S"));
-
-    let fmt = "{d(%Y-%m-%d %H:%M:%S)} [{l}] - {m}\n";
-
-    let stdout = ConsoleAppender::builder()
-        .encoder(Box::new(PatternEncoder::new(fmt)))
-        .build();
-
-    let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new(fmt)))
-        .build(log_file_name)?;
-
-    let config = Config::builder()
-        .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(
-            Root::builder()
-                .appender("stdout")
-                .appender("logfile")
-                .build(LevelFilter::Trace),
-        )?;
-
-    log4rs::init_config(config)?;
-    Ok(())
 }
