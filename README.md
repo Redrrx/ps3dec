@@ -182,6 +182,29 @@ If you visit the releases page you might find two types
 * Stable == ready to use, reliable enough.
 * Preview == trying out requests, and toying around before stable.
 
+### creating a release
+
+You choose the version; nothing bumps it for you.
+
+| Event | What happens |
+|-------|--------------|
+| Push to `dev` or merge into `main` | No extra build |
+| Open or update a PR into `main` | Rust formatting, Clippy, Python syntax, all six platform builds, and Linux decryption tests |
+| Push a `v*` tag | Check the version, build and test, then publish if everything passes |
+| Manual run | Full checks and builds, without publishing |
+
+1. Set your version in `Cargo.toml`, then run `cargo check` to update `Cargo.lock`.
+2. Commit both files, open a PR into `main`, and wait for the checks to pass. Require **Rust and Python checks** and all six **Build** checks before merging.
+3. Merge the PR, then tag your chosen version from the updated `main`:
+
+```sh
+git switch main
+git pull --ff-only origin main
+git tag v3.0.0
+git push origin v3.0.0
+```
+
+`3.0.0` is an example; use your chosen version and an unused tag. The tag must match `Cargo.toml` and `Cargo.lock`, and point to a commit on `main`. Release notes include commits since the previous version tag and GitHub's generated notes. Linux tests use the release executable already built, so there's no second debug build.
 
 ## Acknowledgements
 
