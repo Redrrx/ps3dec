@@ -1,6 +1,6 @@
 [package]
 name = "ps3decrs"
-version = "2.0.1"
+version = "3.0.0"
 edition = "2024"
 description = "PS3 ISO decryption tool."
 repository = "https://github.com/Redrrx/ps3dec"

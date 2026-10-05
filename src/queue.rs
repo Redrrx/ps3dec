@@ -349,7 +349,7 @@ pub fn run(
         return run_tui(args, &pool, logs);
     }
     let interactive = io::stderr().is_terminal() && logs.is_none();
-    let style = progress_style(); 
+    let style = progress_style();
     let _header = interactive.then(|| {
         let header = ProgressBar::hidden();
         header.set_prefix(" #  ISO");
